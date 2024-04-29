@@ -1,75 +1,102 @@
 version "4.12"
 
-class Fist_ : Fist
+class GloryKillFist : Weapon
 {
+	Weapon prevWeapon;
+	GloryKillController victim;
+	Vector3 victimOfs;
+
+	Default
+	{
+		+Weapon.CHEATNOTWEAPON
+	}
+
+	static void StartGloryKillAnimation(PlayerPawn ppawn, GloryKillController victimController, Vector3 posOfs)
+	{
+		Weapon curw = ppawn.player.readyweapon;
+		let gf = GloryKillFist(ppawn.GiveInventoryType('GloryKillFist'));
+		if (gf)
+		{
+			gf.prevWeapon = curw;
+			gf.victim = victimController;
+			gf.victimOfs = posOfs;
+			ppawn.player.readyweapon = gf;
+			ppawn.player.SetPSprite(PSP_WEAPON, gf.FindState("Ready"));
+			ppawn.player.cheats |= CF_TOTALLYFROZEN;
+			ppawn.A_Face(victimController.owner, 0, 0, z_ofs: victimController.owner.default.height*0.5);
+			ppawn.A_Stop();
+		}
+	}
+
 	override void DoEffect()
 	{
-		Super.DoEffect();
-		if (!owner || !owner.player) return;
-
-		let weap = owner.player.readyweapon;
-		if (!weap || weap != self) return;
-
-		let psp = owner.player.FindPSPrite(PSP_WEAPON);
-		if (!psp) return;
-		let glorystate = FindState('GloryKill');
-		if (!glorystate) return;
-
-		if (InStateSequence(psp.curstate, glorystate))
-		{}
-
-		else if ((owner.player.cmd.buttons & BT_USE) && !(owner.player.oldbuttons & BT_USE))
+		if (owner && victim && victim.owner)
 		{
-			let gktracer = new('GloryKillTracer');
-			gktracer.Trace((owner.pos.xy, owner.player.viewz), cursector, (AngleToVector(owner.angle, cos(owner.pitch)), -sin(owner.pitch)), 80 + owner.radius * 2, TRF_ALLACTORS);
-			if (gktracer.canGloryKill)
-			{
-				let v = gktracer.results.HitActor;
-				if (v)
-				{
-					let gc = GloryKillController(v.FindInventory('GloryKillController'));
-					if (gc)
-					{
-						gc.DoGloryKill();
-					}
-					psp.SetState(glorystate);
-				}
-			}
+			owner.SetOrigin(victim.owner.pos + victimOfs, true);
 		}
+	}
+
+	override void DetachFromOwner()
+	{
+		if (owner && owner.player)
+		{
+			owner.player.pendingweapon = prevWeapon;
+			owner.player.cheats &= ~CF_INSTANTWEAPSWITCH;
+			owner.player.cheats &= ~CF_TOTALLYFROZEN;
+		}
+		Super.DetachFromOwner();
 	}
 
 	States
 	{
-	GloryKill:
-		PUNG BC 4;
-		PUNG D 5;
-		PUNG C 4;
-		PUNG B 5;
-		TNT1 A 0 { return ResolveState("Ready"); } //NOT goto
-	}
-}
-
-class GloryKillTracer : LineTracer
-{
-	bool canGloryKill;
-
-	override ETRaceStatus TraceCallBack()
-	{
-		if (results.HitType == TRACE_HitActor)
+	Select:
+		TNT1 A 0 { return ResolveState("Ready"); }
+		wait;
+	Deselect:
+		TNT1 A 0 A_Lower();
+		wait;
+	Fire:
+	Ready:
+		TNT1 A 0 A_OverlayPivot(OverlayID(), 0.2, 0.8);
+		GFIS AAA 1 
 		{
-			Console.Printf("hit %s", results.HitActor.GetClassName());
-			let gc = GloryKillController(results.HitActor.FindInventory('GloryKillController'));
-			if (gc)
+			A_OverlayRotate(OverlayID(), 3, WOF_ADD);
+			A_OverlayOffset(OverlayID(), -5, 5, WOF_ADD);
+		}
+		GFIS AAAAAAA 1 
+		{
+			A_OverlayRotate(OverlayID(), 0.5, WOF_ADD);
+			A_OverlayOffset(OverlayID(), -1, 1, WOF_ADD);
+		}
+		GFIS BBBBBB 1
+		{
+			let psp = player.FindPSprite(OverlayID());
+			psp.bInterpolate = true;
+			psp.rotation *= 0.3;
+			psp.x += 20;
+			psp.y = Clamp(psp.y - 8, WEAPONTOP, WEAPONBOTTOM);
+		}
+		GFIS B 0
+		{
+			if (invoker.victim)
 			{
-				Console.Printf("%s can be glorykilled", results.HitActor.GetClassName());
-				canGloryKill = true;
-				return TRACE_Stop;
+				invoker.victim.DoGloryKill();
 			}
 		}
-		return TRACE_Skip;
+		GFIS BBBBBBBBBB 1
+		{
+			A_OverlayOffset(OverlayID(), 5, 10, WOF_ADD);
+			A_OverlayScale(OverlayID(), -0.015, -0.015, WOF_ADD);
+		}
+		TNT1 A 0 
+		{ 
+			A_TakeInventory(invoker.GetClass(), invoker.amount);
+		}
+		stop;
 	}
 }
 
+// This gives all monsters a controller upon death:
 class GloryKillHandler : EventHandler
 {
 	override void WorldThingDied(worldEvent e)
@@ -82,6 +109,7 @@ class GloryKillHandler : EventHandler
 	}
 }
 
+// Controls the actual effects:
 class GloryKillController : Powerup
 {
 	Actor gloryflash;
@@ -89,16 +117,6 @@ class GloryKillController : Powerup
 	Default
 	{
 		Powerup.Duration -5;
-	}
-
-	override void InitEffect()
-	{
-		Super.InitEffect();
-		if (owner)
-		{
-			owner.bSHOOTABLE = false;
-			owner.height = owner.default.height;
-		}
 	}
 
 	override void Tick()
@@ -113,19 +131,37 @@ class GloryKillController : Powerup
 		owner.A_SetTics(-1);
 	}
 
+	// The glory kill visuals. This snaps the monster
+	// from being frozen in the first state of Death,
+	// sends it to XDeath (if available) and spawns some
+	// blood.
 	void DoGloryKill()
 	{
 		if (!owner) return;
+		effectTics = 0;
+
+		// Everything below in this function is visual-only
+		// and can be redone in any way you like:
 		let st = owner.FindState("XDeath");
 		if (st)
 		{
 			owner.SetState(st);
 		}
-		for (int i = 10; i > 0; i--)
+		FSpawnParticleParams bp;
+		bp.color1 = (owner.bloodcolor != 0)? owner.bloodcolor : gameinfo.defaultbloodcolor;
+		bp.startalpha = 1.0;
+		bp.lifetime = 35;
+		for (int i = 50; i > 0; i--)
 		{
-			owner.SpawnBlood(owner.pos, frandom[gc](0,360), 100);
+			bp.size = frandom[bp](10, 20);
+			bp.pos = owner.pos + (frandom[bp](-owner.radius, owner.radius), frandom[bp](-owner.radius, owner.radius), frandom(owner.default.height*0.2, owner.default.height*0.8));
+			bp.vel.xy = (frandom[bp](-8, 8), frandom[bp](-8, 8));
+			bp.vel.z = frandom[bp](5, 8);
+			bp.accel.z = -(owner.GetGravity());
+			bp.accel.xy = -(bp.vel.xy * 0.05);
+			bp.sizestep = -(bp.size / bp.lifetime);
+			Level.SpawnParticle(bp);
 		}
-		effectTics = 0;
 	}
 
 	override void EndEffect()
@@ -137,20 +173,45 @@ class GloryKillController : Powerup
 		if (owner)
 		{
 			owner.A_SetTics(1);
-			owner.height = owner.deathheight;
 		}
 		Super.EndEffect();
 	}
 }
 
+// This both handles the visuals AND functions as
+// the usable object the player can activate to do
+// the glory kill:
 class GloryKillFlash : Actor
 {
 	Default
 	{
-		+NOINTERACTION
-		+NOBLOCKMAP
-		Renderstyle 'Shaded';
+		+SOLID
 		+BRIGHT
+		Renderstyle 'Shaded';
+		alpha 0.7;
+	}
+
+	override bool Used(Actor user)
+	{
+		if (user.player && master)
+		{
+			let gc = GloryKillController(master.FindInventory('GloryKillController'));
+			if (gc)
+			{
+				gc.effectTics = 1000;
+				GloryKillFist.StartGloryKillAnimation(user.player.mo, gc, Level.Vec3Diff(master.pos, user.pos));
+			}
+		}
+		return false;
+	}
+
+	override void PostBeginPlay()
+	{
+		Super.PostBeginPlay();
+		if (master)
+		{
+			A_SetSize(master.radius, master.default.height);
+		}
 	}
 
 	override void Tick()

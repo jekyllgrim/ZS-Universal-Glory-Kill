@@ -3,7 +3,8 @@ version "4.12"
 class GloryKillFist : Weapon
 {
 	Weapon prevWeapon;
-	GloryKillController victim;
+	GloryKillController victimController;
+	Actor victim;
 	Vector3 victimOfs;
 
 	Default
@@ -18,7 +19,8 @@ class GloryKillFist : Weapon
 		if (gf)
 		{
 			gf.prevWeapon = curw;
-			gf.victim = victimController;
+			gf.victimController = victimController;
+			gf.victim = victimController.owner;
 			gf.victimOfs = posOfs;
 			ppawn.player.readyweapon = gf;
 			ppawn.player.SetPSprite(PSP_WEAPON, gf.FindState("Ready"));
@@ -28,11 +30,19 @@ class GloryKillFist : Weapon
 		}
 	}
 
+	action void A_KillVictim()
+	{
+		if (invoker.victimController)
+		{
+			invoker.victimController.DoGloryKill();
+		}
+	}
+
 	override void DoEffect()
 	{
-		if (owner && victim && victim.owner)
+		if (owner && victim)
 		{
-			owner.SetOrigin(victim.owner.pos + victimOfs, true);
+			owner.SetOrigin(victim.pos + victimOfs, true);
 		}
 	}
 
@@ -76,13 +86,7 @@ class GloryKillFist : Weapon
 			psp.x += 20;
 			psp.y = Clamp(psp.y - 8, WEAPONTOP, WEAPONBOTTOM);
 		}
-		GFIS B 0
-		{
-			if (invoker.victim)
-			{
-				invoker.victim.DoGloryKill();
-			}
-		}
+		GFIS B 0 A_KillVictim();
 		GFIS BBBBBBBBBB 1
 		{
 			A_OverlayOffset(OverlayID(), 5, 10, WOF_ADD);

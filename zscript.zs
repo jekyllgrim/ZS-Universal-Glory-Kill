@@ -27,6 +27,9 @@ class GloryKillFist : Weapon
 			ppawn.player.cheats |= CF_TOTALLYFROZEN;
 			ppawn.A_Face(victimController.owner, 0, 0, z_ofs: victimController.owner.default.height*0.5);
 			ppawn.A_Stop();
+			Level.SetFrozen(true);
+			gf.victim.bNoTimeFreeze = true;
+			gf.victimController.gloryflash.bNoTimeFreeze = true;
 		}
 	}
 
@@ -46,6 +49,8 @@ class GloryKillFist : Weapon
 		}
 	}
 
+	// Unfreezes the player and re-selects their
+	// current weapon:
 	override void DetachFromOwner()
 	{
 		if (owner && owner.player)
@@ -53,19 +58,33 @@ class GloryKillFist : Weapon
 			owner.player.pendingweapon = prevWeapon;
 			owner.player.cheats &= ~CF_INSTANTWEAPSWITCH;
 			owner.player.cheats &= ~CF_TOTALLYFROZEN;
+			owner.bNoTimeFreeze = owner.default.bNoTimeFreeze;
+		}
+		Level.SetFrozen(false);
+		if (victim)
+		{
+			victim.bNoTimeFreeze = victim.default.bNoTimeFreeze;
 		}
 		Super.DetachFromOwner();
 	}
 
 	States
 	{
+	// Select, Deselect and Fire states are dummy,
+	// they're defined simply because weapons can't
+	// be defined without them:
 	Select:
-		TNT1 A 0 { return ResolveState("Ready"); }
+		TNT1 A 0 A_Raise();
 		wait;
 	Deselect:
 		TNT1 A 0 A_Lower();
 		wait;
 	Fire:
+	// This is the actual attack animation.
+	// As an example, this uses tuned-up
+	// Fist animation. The only important
+	// mechanical bit is A_KillVictim; the rest
+	// can be modified as you like:
 	Ready:
 		TNT1 A 0 A_OverlayPivot(OverlayID(), 0.2, 0.8);
 		GFIS AAA 1 
@@ -94,6 +113,7 @@ class GloryKillFist : Weapon
 		}
 		TNT1 A 0 
 		{ 
+			// This ends the animation and removes the weapon:
 			A_TakeInventory(invoker.GetClass(), invoker.amount);
 		}
 		stop;
@@ -146,12 +166,17 @@ class GloryKillController : Powerup
 
 		// Everything below in this function is visual-only
 		// and can be redone in any way you like:
-		let st = owner.FindState("XDeath");
+
+		// move monster to XDeath, if present:
+		let st = owner.FindState("XDeath"); 
 		if (st)
 		{
 			owner.SetState(st);
 		}
+
+		// spawn some read particles from them:
 		FSpawnParticleParams bp;
+		// get bloodcolor from the monster; if unspecified, get from gameinfo:
 		bp.color1 = (owner.bloodcolor != 0)? owner.bloodcolor : gameinfo.defaultbloodcolor;
 		bp.startalpha = 1.0;
 		bp.lifetime = 35;
@@ -170,6 +195,7 @@ class GloryKillController : Powerup
 
 	override void EndEffect()
 	{
+		// Destroy flash and unfreeze the monster's animation:
 		if (gloryflash)
 		{
 			gloryflash.Destroy();
@@ -202,6 +228,9 @@ class GloryKillFlash : Actor
 			let gc = GloryKillController(master.FindInventory('GloryKillController'));
 			if (gc)
 			{
+				// Extend the controller's duration just to make sure it doesn't 
+				// run out mid-animation (it'll be removed automatically at the
+				// end anyway):
 				gc.effectTics = 1000;
 				GloryKillFist.StartGloryKillAnimation(user.player.mo, gc, Level.Vec3Diff(master.pos, user.pos));
 			}

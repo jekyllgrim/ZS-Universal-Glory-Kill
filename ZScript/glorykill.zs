@@ -357,14 +357,6 @@ class GloryAmmoDropData play
 	}
 }
 
-class HellKnight1 : HellKnight replaces HellKnight
-{
-	Default
-	{
-		BloodColor "green";
-	}
-}
-
 class GloryKillBlood : Blood
 {
 	color particleBloodColor;

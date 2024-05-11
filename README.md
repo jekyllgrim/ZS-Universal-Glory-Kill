@@ -30,4 +30,4 @@ This minimod/library adds a universal "glory kill" mechanic to GZDoom.
 
 ### License
 
-MIT License. Do whatever you want with it, just copy my LICENSE.txt file into your project.
+MIT License. Do whatever you want with it, just copy my [LICENSE.txt](https://github.com/jekyllgrim/ZS-Universal-Glory-Kill/blob/main/ZScript/LICENSE.txt) file into your project.

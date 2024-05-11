@@ -288,7 +288,7 @@ class GloryKillController : Powerup
 			{
 				ammoClasses.Push(am);
 				totalWeight += adata.weight; //add its weight to total weight value:
-				Console.Printf("\ckPreliminary array\c-: Pushing \cy%s\c- (weight: \cd%d\c-)", am.GetClassName(), adata.weight);
+				//Console.Printf("\ckPreliminary array\c-: Pushing \cy%s\c- (weight: \cd%d\c-)", am.GetClassName(), adata.weight);
 			}
 		}
 
@@ -301,14 +301,14 @@ class GloryKillController : Powerup
 		int drops = Clamp(owner.GetMaxHealth() / 50, 4, 20);
 		// Safety to make sure this doesn't freeze:
 		int maxIterations = 64;
-		Console.Printf("\ckDrops:\c- size \cd%d\c- (monster health: \cd%d\c-)", drops, owner.GetMaxHealth());
+		//Console.Printf("\ckDrops:\c- size \cd%d\c- (monster health: \cd%d\c-)", drops, owner.GetMaxHealth());
 		while (drops && maxIterations)
 		{
 			foreach (adata : ammoDropData)
 			{
 				// Roll chance and compare it to weight:
 				double chance = random[add](0, totalWeight) * frandom[add](0.0, 1.0);
-				Console.Printf("\ckFinal roll:\c- Rolling for \cy%s\c- | Roll: \cd%d\c- (required: \cd%d\c-) -- %s", adata.ammotype.GetClassName(), chance, adata.weight, chance <= adata.weight? "\cdSuccess" : "\cgFail");
+				//Console.Printf("\ckFinal roll:\c- Rolling for \cy%s\c- | Roll: \cd%d\c- (required: \cd%d\c-) -- %s", adata.ammotype.GetClassName(), chance, adata.weight, chance <= adata.weight? "\cdSuccess" : "\cgFail");
 				// If it fit the weight, push it into the ammoClasses array:
 				if (chance <= adata.weight)
 				{
@@ -369,9 +369,9 @@ class GloryKillBlood : Blood
 		Color dbc = gameinfo.defaultbloodcolor;
 		particleBloodColor = (bc.r != 0 || bc.g != 0 || bc.b != 0)? bc : dbc;
 		//Console.Printf("Target bloodColor: \cd%d %d %d\c- | DefaultBloodColor: \cd%d %d %d\c- | Particle blood color: \cd%d %d %d\c-",
-			bc.r, bc.g, bc.b,
-			dbc.r, dbc.g, dbc.b,
-			particleBloodColor.r, particleBloodColor.g, particleBloodColor.b);
+			//bc.r, bc.g, bc.b,
+			//dbc.r, dbc.g, dbc.b,
+			//particleBloodColor.r, particleBloodColor.g, particleBloodColor.b);
 	}
 
 	override void Tick()

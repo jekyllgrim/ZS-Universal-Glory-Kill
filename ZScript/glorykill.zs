@@ -226,7 +226,6 @@ class GloryKillController : Powerup
 		if (!killer || !killer.player) return;
 		array < class<Ammo> > ammoClasses; //ammo classes to drop
 		BuildAmmoArray(killer.player.mo, ammoClasses);
-		//GloryKillAmmoDropper.Create(owner.pos, ammoClasses);
 		while (ammoClasses.Size() > 0)
 		{
 			let amcls = ammoClasses[ammoClasses.Size()-1];
@@ -355,42 +354,6 @@ class GloryAmmoDropData play
 		d.ammoType = ammotype;
 		d.weight = weight;
 		return d;
-	}
-}
-
-class GloryKillAmmoDropper : Actor
-{
-	array < class<Ammo> > drops;
-	
-	Default
-	{
-		+NOBLOCKMAP
-	}
-
-	static void Create(Vector3 pos, out array < class<Ammo> > drops)
-	{
-		let n = GloryKillAmmoDropper(Spawn('GloryKillAmmoDropper', pos));
-		n.drops.Copy(drops);
-		Console.Printf("\ckGloryKillAmmoDropper\c- initalized with \cd%d\c- ammo to drop", n.drops.Size());
-	}
-
-	override void Tick()
-	{
-		if (isFrozen()) return;
-		if (GetAge() % 3 != 0) return;
-		int arrsize = drops.Size();
-		if (arrsize <= 0)
-		{
-			Destroy();
-			return;
-		}
-		class<Ammo> am = drops[arrsize-1];
-		if (am)
-		{
-			let amDrop = Spawn(am, pos);
-			amDrop.Vel3DFromAngle(frandom[add](5,9), frandom[add](0,360), frandom[add](0, -60));
-		}
-		drops.Pop();
 	}
 }
 
